@@ -54,7 +54,7 @@
   },
   "homepage": "https://github.com/risense-ai/memlite-obsidian#readme",
   "dependencies": {
-    "@rsrsai/memlite": "file:../memlite-js/packages/core",
+    "@rsrsai/memlite": "^0.1.0",
     "cac": "^6.7.14",
     "gray-matter": "^4.0.3"
   },

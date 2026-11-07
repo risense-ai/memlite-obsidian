@@ -10,8 +10,8 @@ export {
   IdFormatError,
   type DedupProbe,
 } from './import/dedup'
-export { importVault, statusVault, openBridgeMem } from './import/importer'
-export { exportVault, type ExportOptions, type ExportReport } from './export/exporter'
+export { importVault, importVaultWith, statusVault, statusVaultWith, openBridgeMem } from './import/importer'
+export { exportVault, exportVaultWith, type ExportOptions, type ExportReport } from './export/exporter'
 export { sanitizeFilename, resolveConflict } from './export/filename'
 export { toFrontmatterData, renderMarkdown } from './export/frontmatter'
 export { buildTree, type ExportNode, type BuildTreeResult } from './export/tree'

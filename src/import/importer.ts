@@ -74,10 +74,10 @@ function normalizeTags(v: unknown): string[] {
   return []
 }
 
-/** 主导入流：walk → 逐条三级去重 → update 或 remember；单条失败不阻塞整批。 */
-export async function importVault(vaultPath: string, opts: ImportOptions = {}): Promise<ImportReport> {
+/** 共享实例导入流：复用调用方 Memlite（不 open/close、不动生命周期）。
+ * dsh-memlite 等常驻宿主用此重载避免双实例写冲突。 */
+export async function importVaultWith(mem: Memlite, vaultPath: string, opts: ImportOptions = {}): Promise<ImportReport> {
   const { entries, skipped } = walkVault(vaultPath)
-  const mem = openBridgeMem(opts.dataDir)
   const report: ImportReport = {
     scanned: entries.length,
     created: [],
@@ -90,25 +90,32 @@ export async function importVault(vaultPath: string, opts: ImportOptions = {}): 
   }
   const pathIds = new Map<string, string>() // 目录条路径 → 已落库 id
 
-  try {
-    let done = 0
-    for (const entry of entries) {
-      try {
-        await importEntry(mem, entry, opts, report, pathIds)
-      } catch (e) {
-        report.skipped.push({
-          path: entry.path,
-          reason: 'write-error',
-          detail: e instanceof Error ? e.message : String(e),
-        })
-      }
-      done++
-      opts.onProgress?.(done, entries.length, entry.path)
+  let done = 0
+  for (const entry of entries) {
+    try {
+      await importEntry(mem, entry, opts, report, pathIds)
+    } catch (e) {
+      report.skipped.push({
+        path: entry.path,
+        reason: 'write-error',
+        detail: e instanceof Error ? e.message : String(e),
+      })
     }
+    done++
+    opts.onProgress?.(done, entries.length, entry.path)
+  }
+  return report
+}
+
+/** 主导入流：walk → 逐条三级去重 → update 或 remember；单条失败不阻塞整批。
+ * 自开自关桥专用 Memlite（CLI 形态）。 */
+export async function importVault(vaultPath: string, opts: ImportOptions = {}): Promise<ImportReport> {
+  const mem = openBridgeMem(opts.dataDir)
+  try {
+    return await importVaultWith(mem, vaultPath, opts)
   } finally {
     mem.close()
   }
-  return report
 }
 
 async function importEntry(
@@ -210,35 +217,30 @@ function writeIdBack(absPath: string, id: string, report: ImportReport): void {
   }
 }
 
-/** status：vault 各文件相对当前库的同步态（synced/outdated/missing） */
-export async function statusVault(vaultPath: string, opts: { dataDir?: string; project?: string } = {}): Promise<StatusReport> {
+/** 共享实例 status：复用调用方 Memlite（不 open/close）。 */
+export async function statusVaultWith(mem: Memlite, vaultPath: string, opts: { dataDir?: string; project?: string } = {}): Promise<StatusReport> {
   const { entries, skipped } = walkVault(vaultPath)
-  const mem = openBridgeMem(opts.dataDir)
   const rows: StatusRow[] = []
-  try {
-    for (const entry of entries) {
-      const cand = toCandidate(entry, opts.project)
-      let hit = null
-      try {
-        hit = findExisting(mem, { frontmatterId: cand.idAnchor, sourceHash: cand.sourceHash, obsidianPath: entry.path })
-      } catch {
-        // id 锚非法：按无 id 锚继续
-        hit = findExisting(mem, { sourceHash: cand.sourceHash, obsidianPath: entry.path })
-      }
-      if (hit === null) {
-        rows.push({ path: entry.path, state: 'missing', id: '', anchor: null, changes: [] })
-        continue
-      }
-      const view = mem.show(hit.id)
-      if (view === undefined) {
-        rows.push({ path: entry.path, state: 'missing', id: '', anchor: null, changes: [] })
-        continue
-      }
-      const changes = diffAgainst(view.record, cand)
-      rows.push({ path: entry.path, state: changes.length === 0 ? 'synced' : 'outdated', id: view.record.id, anchor: hit.anchor, changes })
+  for (const entry of entries) {
+    const cand = toCandidate(entry, opts.project)
+    let hit = null
+    try {
+      hit = findExisting(mem, { frontmatterId: cand.idAnchor, sourceHash: cand.sourceHash, obsidianPath: entry.path })
+    } catch {
+      // id 锚非法：按无 id 锚继续
+      hit = findExisting(mem, { sourceHash: cand.sourceHash, obsidianPath: entry.path })
     }
-  } finally {
-    mem.close()
+    if (hit === null) {
+      rows.push({ path: entry.path, state: 'missing', id: '', anchor: null, changes: [] })
+      continue
+    }
+    const view = mem.show(hit.id)
+    if (view === undefined) {
+      rows.push({ path: entry.path, state: 'missing', id: '', anchor: null, changes: [] })
+      continue
+    }
+    const changes = diffAgainst(view.record, cand)
+    rows.push({ path: entry.path, state: changes.length === 0 ? 'synced' : 'outdated', id: view.record.id, anchor: hit.anchor, changes })
   }
   return {
     rows,
@@ -246,5 +248,15 @@ export async function statusVault(vaultPath: string, opts: { dataDir?: string; p
     outdated: rows.filter((r) => r.state === 'outdated').length,
     missing: rows.filter((r) => r.state === 'missing').length,
     skipped,
+  }
+}
+
+/** status：vault 各文件相对当前库的同步态（synced/outdated/missing）。自开自关桥专用 Memlite。 */
+export async function statusVault(vaultPath: string, opts: { dataDir?: string; project?: string } = {}): Promise<StatusReport> {
+  const mem = openBridgeMem(opts.dataDir)
+  try {
+    return await statusVaultWith(mem, vaultPath, opts)
+  } finally {
+    mem.close()
   }
 }

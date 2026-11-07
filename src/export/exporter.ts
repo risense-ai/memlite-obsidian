@@ -22,8 +22,8 @@ export interface ExportReport {
   warnings: string[]
 }
 
-/** 主导出流：因果树 → 目录树 vault。默认拒绝覆盖已存在目录；--overwrite 先清空。 */
-export function exportVault(outputPath: string, opts: ExportOptions = {}): ExportReport {
+/** 共享实例导出流：复用调用方 Memlite（不 open/close、不动生命周期）。 */
+export function exportVaultWith(mem: Memlite, outputPath: string, opts: ExportOptions = {}): ExportReport {
   const outAbs = path.resolve(outputPath)
   if (fs.existsSync(outAbs)) {
     const empty = fs.readdirSync(outAbs).length === 0
@@ -34,33 +34,39 @@ export function exportVault(outputPath: string, opts: ExportOptions = {}): Expor
   }
   fs.mkdirSync(outAbs, { recursive: true })
 
-  const mem: Memlite = openBridgeMem(opts.dataDir)
   const warnings: string[] = []
   let written = 0
   let total = 0
   let dangling = 0
+  const tree = buildTree(mem)
+  dangling = tree.dangling
+  const roots = tree.roots
+  if (dangling > 0) warnings.push(`${dangling} 条 parent_id 悬空（父已删），按根处理`)
+  total = countNodes(roots)
+  // 同目录文件名集合：全树预占（目录名与文件名共享命名空间）
+  const usedByDir = new Map<string, Set<string>>()
+  for (const root of roots) {
+    writeNode(root, outAbs, '', usedByDir, (n) => {
+      written++
+      opts.onProgress?.(written, total, n.record.title)
+    }, warnings)
+  }
+  // 最小 .obsidian 配置（打开即用；graph/backlinks 为核心插件默认开）
+  const obsidianDir = path.join(outAbs, '.obsidian')
+  fs.mkdirSync(obsidianDir, { recursive: true })
+  fs.writeFileSync(path.join(obsidianDir, 'app.json'), '{}\n', 'utf8')
+  return { output: outAbs, total, written, dangling, warnings }
+}
+
+/** 主导出流：因果树 → 目录树 vault。默认拒绝覆盖已存在目录；--overwrite 先清空。
+ * 自开自关桥专用 Memlite（CLI 形态）。 */
+export function exportVault(outputPath: string, opts: ExportOptions = {}): ExportReport {
+  const mem: Memlite = openBridgeMem(opts.dataDir)
   try {
-    const tree = buildTree(mem)
-    dangling = tree.dangling
-    const roots = tree.roots
-    if (dangling > 0) warnings.push(`${dangling} 条 parent_id 悬空（父已删），按根处理`)
-    total = countNodes(roots)
-    // 同目录文件名集合：全树预占（目录名与文件名共享命名空间）
-    const usedByDir = new Map<string, Set<string>>()
-    for (const root of roots) {
-      writeNode(root, outAbs, '', usedByDir, (n) => {
-        written++
-        opts.onProgress?.(written, total, n.record.title)
-      }, warnings)
-    }
-    // 最小 .obsidian 配置（打开即用；graph/backlinks 为核心插件默认开）
-    const obsidianDir = path.join(outAbs, '.obsidian')
-    fs.mkdirSync(obsidianDir, { recursive: true })
-    fs.writeFileSync(path.join(obsidianDir, 'app.json'), '{}\n', 'utf8')
+    return exportVaultWith(mem, outputPath, opts)
   } finally {
     mem.close()
   }
-  return { output: outAbs, total, written, dangling, warnings }
 }
 
 function writeNode(

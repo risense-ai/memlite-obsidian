@@ -41,16 +41,18 @@ function toCandidate(entry: VaultEntry, fallbackProject: string | undefined): {
   const fmProject = typeof fm['project'] === 'string' ? fm['project'].trim() : ''
   const project = fmProject !== '' ? fmProject : (fallbackProject ?? '')
 
-  let ts = entry.mtime
+  // ts 统一规整到毫秒精度（与 memlite nowTs 一致；ISO8601 往返无损——导出再导入幂等的必要条件）
+  let tsMs = Math.round(entry.mtime * 1000)
   const created = fm['created']
   if (created instanceof Date) {
-    ts = created.getTime() / 1000 // YAML 无引号 ISO 日期解析为 Date
+    tsMs = created.getTime() // YAML 无引号 ISO 日期解析为 Date
   } else if (typeof created === 'string') {
     const t = Date.parse(created)
-    if (!Number.isNaN(t)) ts = t / 1000
+    if (!Number.isNaN(t)) tsMs = t
   } else if (typeof created === 'number') {
-    ts = created > 1e12 ? created / 1000 : created // ms 兜底转秒
+    tsMs = created > 1e12 ? Math.round(created) : Math.round(created * 1000) // 秒/ms 兜底
   }
+  const ts = tsMs / 1000
 
   let idAnchor: string | undefined
   const fmId = typeof fm['id'] === 'number' ? String(fm['id']) : fm['id'] // YAML 纯数字 id 解析为 number

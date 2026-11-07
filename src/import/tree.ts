@@ -5,9 +5,14 @@ import type { SkippedInfo, VaultEntry, WalkResult } from '../shared/types'
 import { BinaryFileError, parseMarkdownFile } from './parser'
 
 /** 遍历 vault：.md 文件 + 目录（含 folder note 合并）→ VaultEntry[]。
- * 跳过 .obsidian/.trash 与隐藏目录、非 .md 文件；循环软链以 realpath + 已访问集防护。 */
+ * 跳过 .obsidian/.trash 与隐藏目录、非 .md 文件；循环软链以 realpath + 已访问集防护。
+ * vault 路径为空或非目录即抛错（空串会 resolve 成 cwd——禁入）。 */
 export function walkVault(vaultPath: string): WalkResult {
+  if (vaultPath.trim() === '') throw new Error('vault 路径为空')
   const rootReal = fs.realpathSync(path.resolve(vaultPath))
+  if (!fs.statSync(rootReal).isDirectory()) {
+    throw new Error(`vault 路径不是目录: ${rootReal}`)
+  }
   const entries: VaultEntry[] = []
   const skipped: SkippedInfo[] = []
   const visited = new Set<string>([rootReal])
@@ -179,7 +184,7 @@ export function walkVault(vaultPath: string): WalkResult {
   return { entries, skipped }
 }
 
-/** 目录条无正文时填子条标题列表；仍为空（空目录）记 skipped.empty-dir 并剔除该条 */
+/** 目录条无正文时填子条标题列表；仍为空（空目录）静默剔除该条 */
 function fillDirectoryContents(entries: VaultEntry[], skipped: SkippedInfo[]): void {
   for (const e of [...entries]) {
     if (!e.isDirectory || e.content.trim() !== '') continue
@@ -187,8 +192,7 @@ function fillDirectoryContents(entries: VaultEntry[], skipped: SkippedInfo[]): v
       .filter((c) => c.path !== e.path && parentOf(c.path) === e.path)
       .map((c) => `- ${c.title}`)
     if (childTitles.length === 0) {
-      entries.splice(entries.indexOf(e), 1)
-      skipped.push({ path: e.path, reason: 'empty-dir' })
+      entries.splice(entries.indexOf(e), 1) // 空目录不立条（无信息量；避免大目录树刷屏）
       continue
     }
     e.content = childTitles.join('\n')

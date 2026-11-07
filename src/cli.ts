@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { cac } from 'cac'
 import { importVault, statusVault } from './import/importer'
+import { exportVault } from './export/exporter'
 import type { ImportReport } from './shared/types'
 
 const VERSION = '0.1.0'
@@ -20,7 +21,7 @@ cli
         project: opts.project,
         writeId: opts.writeId,
         dryRun: opts.dryRun,
-        dataDir: opts.dataDir,
+        dataDir: opts.dataDir || undefined, // 空串视同未传，防误入用户级数据目录
       })
       printImportReport(report, opts.json === true, opts.dryRun === true)
     } catch (e) {
@@ -35,7 +36,7 @@ cli
   .option('--json', '输出 JSON')
   .action(async (vault: string, opts: { dataDir?: string; json?: boolean }) => {
     try {
-      const report = await statusVault(vault, { dataDir: opts.dataDir })
+      const report = await statusVault(vault, { dataDir: opts.dataDir || undefined })
       if (opts.json === true) {
         console.log(JSON.stringify(report, null, 2))
         return
@@ -51,6 +52,26 @@ cli
       console.log(`\nsynced=${report.synced} outdated=${report.outdated} missing=${report.missing} skipped=${report.skipped.length}`)
     } catch (e) {
       console.error(`status 失败: ${e instanceof Error ? e.message : String(e)}`)
+      process.exitCode = 1
+    }
+  })
+
+cli
+  .command('export <output>', '把 memlite 库导出成 Obsidian vault（一次性快照，覆盖式）')
+  .option('--data-dir <dir>', 'memlite 数据目录（缺省 env > 项目级 > 用户级）')
+  .option('--overwrite', '输出目录已存在非空时先清空再导出')
+  .option('--json', '输出 JSON')
+  .action(async (output: string, opts: { dataDir?: string; overwrite?: boolean; json?: boolean }) => {
+    try {
+      const report = exportVault(output, { dataDir: opts.dataDir || undefined, overwrite: opts.overwrite })
+      if (opts.json === true) {
+        console.log(JSON.stringify(report, null, 2))
+        return
+      }
+      for (const w of report.warnings) console.warn(`warn: ${w}`)
+      console.log(`导出完成：${report.written}/${report.total} 条 → ${report.output}`)
+    } catch (e) {
+      console.error(`导出失败: ${e instanceof Error ? e.message : String(e)}`)
       process.exitCode = 1
     }
   })

@@ -341,3 +341,14 @@ describe('statusVault', () => {
     expect(s2.synced).toBe(1)
   })
 })
+
+describe('路径护栏', () => {
+  it('空 vault 路径拒绝（不落 cwd）', async () => {
+    await expect(importVault('', { dataDir: tmp() })).rejects.toThrow('vault 路径为空')
+    expect(() => walkVault('')).toThrow('vault 路径为空')
+  })
+
+  it('不存在的 vault 路径拒绝', async () => {
+    await expect(importVault('/nonexistent/vault-xyz', { dataDir: tmp() })).rejects.toThrow()
+  })
+})

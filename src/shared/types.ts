@@ -21,7 +21,6 @@ export interface VaultEntry {
 export type SkippedReason =
   | 'empty-content' // 空文件 / 只有 frontmatter / 只有标题
   | 'binary' // 含 \0 判定二进制
-  | 'empty-dir' // 空目录（无子条且无 folder note）
   | 'read-error' // 读文件失败
   | 'parent-failed' // 父条创建失败，连带跳过
   | 'write-error' // memlite 写入失败（敏感闸等）

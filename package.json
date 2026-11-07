@@ -1,0 +1,62 @@
+{
+  "name": "@rsrsai/memlite-obsidian",
+  "version": "0.1.0",
+  "description": "memlite <-> Obsidian bridge: import a vault into memlite, export memlite as a vault. One-way tools, not a sync. Data-compatible with respire-memlite (Rust).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "memlite-obsidian": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsup",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "keywords": [
+    "obsidian",
+    "memlite",
+    "memory",
+    "local-first",
+    "markdown",
+    "ai-memory"
+  ],
+  "author": "risense",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/risense-ai/memlite-obsidian.git"
+  },
+  "bugs": {
+    "url": "https://github.com/risense-ai/memlite-obsidian/issues"
+  },
+  "homepage": "https://github.com/risense-ai/memlite-obsidian#readme",
+  "dependencies": {
+    "@rsrsai/memlite": "file:../memlite-js/packages/core",
+    "cac": "^6.7.14",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.0.0"
+  }
+}

@@ -141,3 +141,16 @@
 ## 事故记录（2026-11-07）
 
 真机验证时 zsh glob 无匹配中止赋值链 → 空变量传入 CLI：`import ""` 落 cwd（memlite-obsidian 仓）且 `--write-id` 向仓内 114 个 .md（含 node_modules）注入 frontmatter；`--data-dir ""` 经 resolveDataDir 落入用户级 `~/memlite-data`（新建目录，写入 312 条垃圾）。清损：删 `~/memlite-data`（全程新目录、无既有数据）、git 还原 4 个仓库文档、剥离 104 个 node_modules 注入、重装 node_modules。加固：vault 路径空/不存在即拒、`--data-dir` 空串视同未传、空目录不再记 skip。教训入 respire 记忆库。
+
+---
+
+## M5（dsh-memlite 整合）适配层（2026-11-07，提交 3b1a1c2/658169a）
+
+dsh-memlite 的 Obsidian 三命令（`/memlite-import` `/memlite-export` `/memlite-vault-status`）需要共享宿主常驻 Memlite 实例——按 dsh-memlite plan 方案 A 落地：
+
+- [x] `importVaultWith(mem, vaultPath, opts)` / `statusVaultWith(mem, vaultPath, opts)` / `exportVaultWith(mem, outputPath, opts)` 共享实例重载（不 open/close、不动生命周期）
+- [x] CLI 版（importVault/statusVault/exportVault）改为自开自关包装，语义不变（37 既有测试零改动全绿）
+- [x] **发现并修复 dry-run 真 bug**：目录条在 dry-run 分支不回填 pathIds，目录子条全误报 parent-failed（dry-run 少报 wouldCreate、多报 skipped）；修复：dry-run 占位 id 保证子条父解析一致；dry-run 下父变更不精确故不计入 changes（+1 测试，43 全绿）
+- [x] 新增 tests/with.test.ts（5 例：复用实例不关闭/progress 照常/dry-run 不写库/status+export 后仍 open/CLI 版与 With 版同 dataDir 互通）
+
+宿主侧（dsh-memlite 仓）：三命令已实现并真机装载验证（16 命令注册）。

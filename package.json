@@ -1,5 +1,6 @@
 {
   "name": "@rsrsai/memlite-obsidian",
+  "packageManager": "pnpm@9.15.0",
   "version": "0.1.0",
   "description": "memlite <-> Obsidian bridge: import a vault into memlite, export memlite as a vault. One-way tools, not a sync. Data-compatible with respire-memlite (Rust).",
   "type": "module",
@@ -16,8 +17,12 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
-  "engines": { "node": ">=18" },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsup",
     "prepack": "npm run build",

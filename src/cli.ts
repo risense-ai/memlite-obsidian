@@ -4,7 +4,7 @@ import { importVault, statusVault } from './import/importer'
 import { exportVault } from './export/exporter'
 import type { ImportReport } from './shared/types'
 
-const VERSION = '0.1.0'
+const VERSION = '0.1.1'
 
 const cli = cac('memlite-obsidian')
 

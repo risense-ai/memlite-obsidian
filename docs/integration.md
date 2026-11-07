@@ -105,8 +105,8 @@ memlite-obsidian watch <vault-path> [opts]      # M4
 
 ### 6.1 与 memlite-js 的互通测试
 
-- [ ] 导入器产出 → memlite-js 主类读出 → 字段一致
-- [ ] 导出器产出 → 重新导入 → 幂等
+- [x] 导入器产出 → memlite-js 主类读出 → 字段一致（tests/importer.test.ts，2026-11-07）
+- [x] 导出器产出 → 重新导入 → 幂等（tests/exporter.test.ts 互通段 + 真机 ROUNDTRIP-IDENTICAL，2026-11-07）
 - [ ] 与 Rust memlite 三方互通：
   - [ ] Obsidian → 本仓 → memlite → Rust memlite 读出
   - [ ] Rust memlite → 本仓导出 → Obsidian 可读

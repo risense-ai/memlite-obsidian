@@ -157,3 +157,5 @@
 ## 进度追踪
 
 每完成一项打 `[x]`。M1 启动时把本文件复制为 `docs/plan-progress.md`，逐日更新。
+
+> 2026-11-07：M1/M2 完成，进度与勾选状态见 [plan-progress.md](./plan-progress.md)。

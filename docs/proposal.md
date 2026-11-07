@@ -1,6 +1,6 @@
 # memlite-obsidian 方案
 
-> **状态**：草稿
+> **状态**：已实现（M1 导入器 + M2 导出器，2026-11-07；进度见 [plan-progress.md](./plan-progress.md)）
 > **仓库**：`risense/memlite-obsidian`
 > **npm 包名**：`@rsrsai/memlite-obsidian`
 > **依赖**：[`@rsrsai/memlite@^0.1.0`](https://github.com/risense-ai/memlite-js)

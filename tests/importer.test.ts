@@ -3,6 +3,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Memlite } from '@rsrsai/memlite'
+import matter from 'gray-matter'
 import { importVault, statusVault } from '../src/import/importer'
 import { walkVault } from '../src/import/tree'
 import { sourceHash } from '../src/import/dedup'
@@ -300,7 +301,9 @@ describe('--write-id 回填', () => {
     const r1 = await importVault(v, { dataDir: d, writeId: true })
     expect(r1.created.length).toBe(1)
     const raw = fs.readFileSync(p, 'utf8')
-    expect(raw).toContain(`id: ${r1.created[0]}`)
+    // 语义断言而非字符串包含：js-yaml 对纯数字字符串的引号策略随版本变化（CI/本地曾不一致）
+    const parsed = matter(raw)
+    expect(parsed.data.id).toBe(r1.created[0])
     expect(raw).toContain('正文保留')
     expect(raw).toContain('tags:')
     const r2 = await importVault(v, { dataDir: d })

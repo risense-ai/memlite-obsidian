@@ -157,7 +157,8 @@ async function importEntry(
       return
     }
     const changes = diffAgainst(view.record, cand)
-    if (parentId(view.record) !== parentFull) changes.push('parent')
+    // dry-run 下父条无真实 id，父变更不精确——不计入（实导入仍会正确处理）
+    if (!opts.dryRun && parentId(view.record) !== parentFull) changes.push('parent')
     if (changes.length === 0) {
       pathIds.set(entry.path, view.record.id)
       report.unchanged++
@@ -183,6 +184,8 @@ async function importEntry(
   // 未命中 → 新建
   if (opts.dryRun) {
     report.wouldCreate++
+    // dry-run 不产生真实 id，占位保证目录子条的父解析与实导入一致（fb8a0c73 同类事故：不回填则子条误报 parent-failed）
+    pathIds.set(entry.path, `dryrun:${entry.path}`)
     return
   }
   const id = await mem.remember(cand.content, {
